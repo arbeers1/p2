@@ -84,12 +84,14 @@ void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {}
 
 void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page) {
    *page = file.allocatePage();
-   FrameId fId = -1;
+   FrameId fId;
    allocBuf(fId); //allocate the frame
-   std::cout << fId << std::flush; //delete this
-   //TODO:
+   //Assign page its frame
+   bufPool[fId] = *page;
    //insert to hash
-   //Call set
+   hashTable.insert(file, pageNo, fId);
+   //Set up the frame
+   bufDescTable[fId].Set(file, pageNo);
 }
 
 void BufMgr::flushFile(File& file) {}
