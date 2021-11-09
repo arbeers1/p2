@@ -48,8 +48,6 @@ void BufMgr::advanceClock() {
 }
 
 void BufMgr::allocBuf(FrameId& frame) {
-   //TODO: 
-   //-Consider case where dirty bit page needs to be written to disk
    //Go through all frames twice(in the case that no frame has ref=0 on first cycle)
    for(unsigned int i = 0; i < numBufs*2; i++){
       //Case if frame is not valid
@@ -61,7 +59,7 @@ void BufMgr::allocBuf(FrameId& frame) {
          frame = clockHand;
 	 //Writes to file in case that the frame is dirty
 	 if(bufDescTable[clockHand].dirty == true){
-	    //write to disk and set dirty to false
+	    bufDescTable[clockHand].file.writePage(bufPool[clockHand]);
 	 }
 	 //Remove current hashtable entry at frame
 	 try{
