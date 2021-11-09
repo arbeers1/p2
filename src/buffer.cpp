@@ -50,7 +50,6 @@ void BufMgr::advanceClock() {
 void BufMgr::allocBuf(FrameId& frame) {
    //TODO: 
    //-Consider case where dirty bit page needs to be written to disk
-   //-Remove entry from hashtable if frame is valid and chosen
    //Go through all frames twice(in the case that no frame has ref=0 on first cycle)
    for(unsigned int i = 0; i < numBufs*2; i++){
       //Case if frame is not valid
@@ -62,6 +61,15 @@ void BufMgr::allocBuf(FrameId& frame) {
       //Case if a frame is available to pick
       }else if(bufDescTable[clockHand].refbit == false && bufDescTable[clockHand].pinCnt == 0){
          frame = clockHand;
+	 //Writes to file in case that the frame is dirty
+	 if(bufDescTable[clockHand].dirty == true){
+	    //write to disk and set dirty to false
+	 }
+	 //Remove current hashtable entry at frame
+	 try{
+	   hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
+	 }catch(HashNotFoundException const&){}
+	 //Increment pin count
 	 bufDescTable[clockHand].pinCnt++;
 	 return;
       //case if ref needs to be reset
