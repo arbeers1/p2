@@ -55,10 +55,8 @@ void BufMgr::allocBuf(FrameId& frame) {
       //Case if frame is not valid
       if(bufDescTable[clockHand].valid == false){
 	 frame = clockHand;
-	 bufDescTable[clockHand].pinCnt++;
-	 bufDescTable[clockHand].valid = true;
 	 return;
-      //Case if a frame is available to pick
+      //Case if a frame is available to pick and valid
       }else if(bufDescTable[clockHand].refbit == false && bufDescTable[clockHand].pinCnt == 0){
          frame = clockHand;
 	 //Writes to file in case that the frame is dirty
@@ -69,11 +67,9 @@ void BufMgr::allocBuf(FrameId& frame) {
 	 try{
 	   hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
 	 }catch(HashNotFoundException const&){}
-	 //Increment pin count
-	 bufDescTable[clockHand].pinCnt++;
 	 return;
       //case if ref needs to be reset
-      }else if(bufDescTable[clockHand].refbit == true){
+      }else if(bufDescTable[clockHand].refbit == true && bufDescTable[clockHand].pinCnt == 0){
          bufDescTable[clockHand].refbit = false;
 	 advanceClock();
       }else{ //march forwards
