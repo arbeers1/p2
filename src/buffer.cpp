@@ -48,6 +48,9 @@ void BufMgr::advanceClock() {
 }
 
 void BufMgr::allocBuf(FrameId& frame) {
+   //TODO: 
+   //-Consider case where dirty bit page needs to be written to disk
+   //-Remove entry from hashtable if frame is valid and chosen
    //Go through all frames twice(in the case that no frame has ref=0 on first cycle)
    for(unsigned int i = 0; i < numBufs*2; i++){
       //Case if frame is not valid
@@ -69,7 +72,8 @@ void BufMgr::allocBuf(FrameId& frame) {
          advanceClock();
       }
    }
-   //TODO: throw exception here(no frame found)
+   //Case if no frames are available
+   throw BufferExceededException();
 }
 
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {}
@@ -77,7 +81,7 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {}
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {}
 
 void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page) {
-   Page p  = file.allocatePage();
+   *page = file.allocatePage();
    FrameId fId = -1;
    allocBuf(fId); //allocate the frame
    std::cout << fId << std::flush; //delete this
