@@ -40,7 +40,7 @@ BufMgr::BufMgr(std::uint32_t bufs)
 
 void BufMgr::advanceClock() {
   // increments clockHand to next position
-  if (clockHand == numBufs) {
+  if (clockHand == numBufs - 1) {
     clockHand = 0;
   } else {
     clockHand++;
@@ -143,7 +143,17 @@ void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
 
 void BufMgr::flushFile(File& file) {}
 
-void BufMgr::disposePage(File& file, const PageId PageNo) {}
+void BufMgr::disposePage(File& file, const PageId PageNo) {
+  //Checks if page is in the pool and removes it if so
+  try{
+    FrameId fId;
+    hashTable.lookup(file, PageNo, fId);
+    hashTable.remove(file, PageNo);
+    bufDescTable[fId].clear();
+  }catch(HashNotFoundException const&){}
+  file.deletePage(PageNo);
+  return;
+}
 
 void BufMgr::printSelf(void) {
   int validFrames = 0;
