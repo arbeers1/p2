@@ -39,43 +39,48 @@ BufMgr::BufMgr(std::uint32_t bufs)
 }
 
 void BufMgr::advanceClock() {
-  //increments clockHand to next position
-  if(clockHand == numBufs-1){
-      clockHand = 0;
-  }else{
-      clockHand++;
+  // increments clockHand to next position
+  if (clockHand == numBufs - 1) {
+    clockHand = 0;
+  } else {
+    clockHand++;
   }
 }
 
 void BufMgr::allocBuf(FrameId& frame) {
-   //Go through all frames twice(in the case that no frame has ref=0 on first cycle)
-   for(unsigned int i = 0; i < numBufs*2; i++){
-      //Case if frame is not valid
-      if(bufDescTable[clockHand].valid == false){
-	 frame = clockHand;
-	 return;
-      //Case if a frame is available to pick and valid
-      }else if(bufDescTable[clockHand].refbit == false && bufDescTable[clockHand].pinCnt == 0){
-         frame = clockHand;
-	 //Writes to file in case that the frame is dirty
-	 if(bufDescTable[clockHand].dirty == true){
-	    bufDescTable[clockHand].file.writePage(bufPool[clockHand]);
-	 }
-	 //Remove current hashtable entry at frame
-	 try{
-	   hashTable.remove(bufDescTable[clockHand].file, bufDescTable[clockHand].pageNo);
-	 }catch(HashNotFoundException const&){}
-	 return;
-      //case if ref needs to be reset
-      }else if(bufDescTable[clockHand].refbit == true && bufDescTable[clockHand].pinCnt == 0){
-         bufDescTable[clockHand].refbit = false;
-	 advanceClock();
-      }else{ //march forwards
-         advanceClock();
+  // Go through all frames twice(in the case that no frame has ref=0 on first
+  // cycle)
+  for (unsigned int i = 0; i < numBufs * 2; i++) {
+    // Case if frame is not valid
+    if (bufDescTable[clockHand].valid == false) {
+      frame = clockHand;
+      return;
+      // Case if a frame is available to pick and valid
+    } else if (bufDescTable[clockHand].refbit == false &&
+               bufDescTable[clockHand].pinCnt == 0) {
+      frame = clockHand;
+      // Writes to file in case that the frame is dirty
+      if (bufDescTable[clockHand].dirty == true) {
+        bufDescTable[clockHand].file.writePage(bufPool[clockHand]);
       }
-   }
-   //Case if no frames are available
-   throw BufferExceededException();
+      // Remove current hashtable entry at frame
+      try {
+        hashTable.remove(bufDescTable[clockHand].file,
+                         bufDescTable[clockHand].pageNo);
+      } catch (HashNotFoundException const&) {
+      }
+      return;
+      // case if ref needs to be reset
+    } else if (bufDescTable[clockHand].refbit == true &&
+               bufDescTable[clockHand].pinCnt == 0) {
+      bufDescTable[clockHand].refbit = false;
+      advanceClock();
+    } else {  // march forwards
+      advanceClock();
+    }
+  }
+  // Case if no frames are available
+  throw BufferExceededException();
 }
 
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {}
@@ -83,15 +88,18 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {}
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {}
 
 void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page) {
-   *page = file.allocatePage();
-   FrameId fId;
-   allocBuf(fId); //allocate the frame
-   //Assign page its frame
-   bufPool[fId] = *page;
-   //insert to hash
-   hashTable.insert(file, pageNo, fId);
-   //Set up the frame
-   bufDescTable[fId].Set(file, pageNo);
+  Page p = file.allocatePage();
+  FrameId fId;
+  allocBuf(fId);  // allocate the frame
+  // Assign page its frame
+  bufPool[fId] = p;
+  pageNo = fId;
+  // insert to hash
+  hashTable.insert(file, pageNo, fId);
+  // Set up the frame
+  bufDescTable[fId].Set(file, pageNo);
+  // Pointer to bufferframe page
+  page = &bufPool[fId];
 }
 
 void BufMgr::flushFile(File& file) {}
