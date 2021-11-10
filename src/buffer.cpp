@@ -104,7 +104,6 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
     bufDescTable[fId].Set(file, pageNo);
     page = &bufPool[fId];
   }
-  return;
 }
 
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
@@ -122,7 +121,6 @@ void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
       bufDescTable[fId].dirty = true;
     }
   }catch(HashNotFoundException const&){}
-  return;
 }
 
 void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
