@@ -83,17 +83,55 @@ void BufMgr::allocBuf(FrameId& frame) {
   throw BufferExceededException();
 }
 
-void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {}
+void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
+  //Checks if the page is in the pool.
+  //If it is, the page is updated and returned via pointer
+  //If it isn't, the page is added via allocatePage
+  FrameId fId;
+  try{
+    hashTable.lookup(file, pageNo, fId);
+    //Update the frame when it is found
+    bufDescTable[fId].refbit = true;
+    bufDescTable[fId].pinCnt++;
+    *page = bufPool[fId];
+  }catch(HashNotFoundException const&){
+    //The frame was not found so it is allocated
+    allocBuf(fId);
+    Page p = file.readPage(pageNo);
+    //New frame inserted and values are updated
+    bufPool[fId] = p;
+    hashTable.insert(file, pageNo, fId);
+    bufDescTable[fId].Set(file, pageNo);
+    page = &bufPool[fId];
+  }
+  return;
+}
 
-void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {}
+void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
+  FrameId fId;
+  //Checks if the page exists and unpins it if so
+  try{
+    hashTable.lookup(file, pageNo, fId);
+    //case if page is not pinned
+    if(bufDescTable[fId].pinCnt == 0){
+      throw PageNotPinnedException(file.filename(), pageNo, fId);
+    }
+    //update pin
+    bufDescTable[fId].pinCnt--;
+    if(dirty){
+      bufDescTable[fId].dirty = true;
+    }
+  }catch(HashNotFoundException const&){}
+  return;
+}
 
-void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page) {
+void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
   Page p = file.allocatePage();
   FrameId fId;
   allocBuf(fId);  // allocate the frame
   // Assign page its frame
   bufPool[fId] = p;
-  pageNo = fId;
+  pageNo = p.page_number();
   // insert to hash
   hashTable.insert(file, pageNo, fId);
   // Set up the frame
@@ -110,7 +148,6 @@ void BufMgr::printSelf(void) {
   int validFrames = 0;
 
   for (FrameId i = 0; i < numBufs; i++) {
-    std::cout << "FrameNo:" << i << " ";
     bufDescTable[i].Print();
 
     if (bufDescTable[i].valid) validFrames++;
