@@ -141,7 +141,28 @@ void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
   page = &bufPool[fId];
 }
 
-void BufMgr::flushFile(File& file) {}
+void BufMgr::flushFile(File& file) {
+  for(unsigned int i = 0; i < numBufs; i++){
+    if(bufDescTable[i].file == file){
+      //fails if page is invalid
+      if(bufDescTable[i].valid == false){
+	FrameId fId = i;
+ 	throw BadBufferException(fId, bufDescTable[i].dirty, bufDescTable[i].valid, bufDescTable[i].refbit);
+      }
+      //fails if page is pinned
+      if(bufDescTable[i].pinCnt > 0){
+	FrameId fId = i;
+        throw PagePinnedException(file.filename(), bufDescTable[i].pageNo, fId);
+      }
+      //write if dirty
+      if(bufDescTable[i].dirty == true){
+        file.writePage(bufPool[i]);
+      }
+      hashTable.remove(file, bufDescTable[i].pageNo);
+      bufDescTable[i].clear();
+    }
+  }
+}
 
 void BufMgr::disposePage(File& file, const PageId PageNo) {
   //Checks if page is in the pool and removes it if so
@@ -152,7 +173,6 @@ void BufMgr::disposePage(File& file, const PageId PageNo) {
     bufDescTable[fId].clear();
   }catch(HashNotFoundException const&){}
   file.deletePage(PageNo);
-  return;
 }
 
 void BufMgr::printSelf(void) {
