@@ -40,7 +40,7 @@ BufMgr::BufMgr(std::uint32_t bufs)
 
 void BufMgr::advanceClock() {
   // increments clockHand to next position
-  if (clockHand == numBufs - 1) {
+  if (clockHand == numBufs) {
     clockHand = 0;
   } else {
     clockHand++;
@@ -93,7 +93,7 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
     //Update the frame when it is found
     bufDescTable[fId].refbit = true;
     bufDescTable[fId].pinCnt++;
-    *page = bufPool[fId];
+    page = &bufPool[fId];
   }catch(HashNotFoundException const&){
     //The frame was not found so it is allocated
     allocBuf(fId);
@@ -132,6 +132,7 @@ void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
   // Assign page its frame
   bufPool[fId] = p;
   pageNo = p.page_number();
+  //std::cout <<  pageNo << std::flush;
   // insert to hash
   hashTable.insert(file, pageNo, fId);
   // Set up the frame

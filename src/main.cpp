@@ -135,10 +135,10 @@ void testBufMgr() {
     // Commenting  a particular test requires commenting all tests that follow
     // it else those tests would fail.
     test1(file1);
-    //test2(file1, file2, file3);
-    //test3(file4);
-    //test4(file4);
-    //test5(file5);
+    test2(file1, file2, file3);
+    test3(file4);
+    test4(file4);
+    test5(file5);
     //test6(file1);
 
     // Close the files by going out of scope
@@ -164,6 +164,7 @@ void test1(File &file1) {
     rid[i] = page->insertRecord(tmpbuf);
     bufMgr->unPinPage(file1, pid[i], true);
   }
+    
   // Reading pages back...
   for (i = 0; i < num; i++) {
     bufMgr->readPage(file1, pid[i], page);
