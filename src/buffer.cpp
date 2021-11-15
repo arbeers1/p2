@@ -1,5 +1,8 @@
 /**
  * @author See Contributors.txt for code contributors and overview of BadgerDB.
+ * @author Alex Beers, MOHAMED ALMARZOOQI, MOHAMED ALREMEITHI
+ *
+ * File: Buffer.cpp
  *
  * @section LICENSE
  * Copyright (c) 2012 Database Group, Computer Sciences Department, University
@@ -84,21 +87,21 @@ void BufMgr::allocBuf(FrameId& frame) {
 }
 
 void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
-  //Checks if the page is in the pool.
-  //If it is, the page is updated and returned via pointer
-  //If it isn't, the page is added via allocatePage
+  // Checks if the page is in the pool.
+  // If it is, the page is updated and returned via pointer
+  // If it isn't, the page is added via allocatePage
   FrameId fId;
-  try{
+  try {
     hashTable.lookup(file, pageNo, fId);
-    //Update the frame when it is found
+    // Update the frame when it is found
     bufDescTable[fId].refbit = true;
     bufDescTable[fId].pinCnt++;
     page = &bufPool[fId];
-  }catch(HashNotFoundException const&){
-    //The frame was not found so it is allocated
+  } catch (HashNotFoundException const&) {
+    // The frame was not found so it is allocated
     allocBuf(fId);
     Page p = file.readPage(pageNo);
-    //New frame inserted and values are updated
+    // New frame inserted and values are updated
     bufPool[fId] = p;
     hashTable.insert(file, pageNo, fId);
     bufDescTable[fId].Set(file, pageNo);
@@ -108,29 +111,30 @@ void BufMgr::readPage(File& file, const PageId pageNo, Page*& page) {
 
 void BufMgr::unPinPage(File& file, const PageId pageNo, const bool dirty) {
   FrameId fId;
-  //Checks if the page exists and unpins it if so
-  try{
+  // Checks if the page exists and unpins it if so
+  try {
     hashTable.lookup(file, pageNo, fId);
-    //case if page is not pinned
-    if(bufDescTable[fId].pinCnt == 0){
+    // case if page is not pinned
+    if (bufDescTable[fId].pinCnt == 0) {
       throw PageNotPinnedException(file.filename(), pageNo, fId);
     }
-    //update pin
+    // update pin
     bufDescTable[fId].pinCnt--;
-    if(dirty){
+    if (dirty) {
       bufDescTable[fId].dirty = true;
     }
-  }catch(HashNotFoundException const&){}
+  } catch (HashNotFoundException const&) {
+  }
 }
 
-void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
+void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page) {
   Page p = file.allocatePage();
   FrameId fId;
   allocBuf(fId);  // allocate the frame
   // Assign page its frame
   bufPool[fId] = p;
   pageNo = p.page_number();
-  //std::cout <<  pageNo << std::flush;
+  // std::cout <<  pageNo << std::flush;
   // insert to hash
   hashTable.insert(file, pageNo, fId);
   // Set up the frame
@@ -140,20 +144,21 @@ void BufMgr::allocPage(File& file, PageId& pageNo, Page*& page){
 }
 
 void BufMgr::flushFile(File& file) {
-  for(unsigned int i = 0; i < numBufs; i++){
-    if(bufDescTable[i].file == file){
-      //fails if page is invalid
-      if(bufDescTable[i].valid == false){
-	FrameId fId = i;
- 	throw BadBufferException(fId, bufDescTable[i].dirty, bufDescTable[i].valid, bufDescTable[i].refbit);
+  for (unsigned int i = 0; i < numBufs; i++) {
+    if (bufDescTable[i].file == file) {
+      // fails if page is invalid
+      if (bufDescTable[i].valid == false) {
+        FrameId fId = i;
+        throw BadBufferException(fId, bufDescTable[i].dirty,
+                                 bufDescTable[i].valid, bufDescTable[i].refbit);
       }
-      //fails if page is pinned
-      if(bufDescTable[i].pinCnt > 0){
-	FrameId fId = i;
+      // fails if page is pinned
+      if (bufDescTable[i].pinCnt > 0) {
+        FrameId fId = i;
         throw PagePinnedException(file.filename(), bufDescTable[i].pageNo, fId);
       }
-      //write if dirty
-      if(bufDescTable[i].dirty == true){
+      // write if dirty
+      if (bufDescTable[i].dirty == true) {
         file.writePage(bufPool[i]);
       }
       hashTable.remove(file, bufDescTable[i].pageNo);
@@ -163,13 +168,14 @@ void BufMgr::flushFile(File& file) {
 }
 
 void BufMgr::disposePage(File& file, const PageId PageNo) {
-  //Checks if page is in the pool and removes it if so
-  try{
+  // Checks if page is in the pool and removes it if so
+  try {
     FrameId fId;
     hashTable.lookup(file, PageNo, fId);
     hashTable.remove(file, PageNo);
     bufDescTable[fId].clear();
-  }catch(HashNotFoundException const&){}
+  } catch (HashNotFoundException const&) {
+  }
   file.deletePage(PageNo);
 }
 

@@ -40,6 +40,9 @@ void test3(File &file4);
 void test4(File &file4);
 void test5(File &file4);
 void test6(File &file1);
+// void custom_test1(File &file1);
+// void custom_test2(File &file1);
+// void custom_test3(File &file1);
 // Calls the above tests
 void testBufMgr();
 
@@ -140,7 +143,10 @@ void testBufMgr() {
     test4(file4);
     test5(file5);
     test6(file1);
-
+    // The following test were not originally included in the project
+    // custom_test1(file1);
+    // custom_test2(file1);
+    // custom_test3(file1);
     // Close the files by going out of scope
   }
 
@@ -164,7 +170,7 @@ void test1(File &file1) {
     rid[i] = page->insertRecord(tmpbuf);
     bufMgr->unPinPage(file1, pid[i], true);
   }
-    
+
   // Reading pages back...
   for (i = 0; i < num; i++) {
     bufMgr->readPage(file1, pid[i], page);
@@ -296,4 +302,73 @@ void test6(File &file1) {
   for (i = 1; i <= num; i++) bufMgr->unPinPage(file1, i, true);
 
   bufMgr->flushFile(file1);
+}
+
+void custom_test1(File &file1) {
+  // Tests that disposePage works
+  bufMgr->allocPage(file1, pid[6], page);
+  bufMgr->disposePage(file1, pid[6]);
+
+  try {
+    file1.readPage(pid[6]);
+    PRINT_ERROR(
+        "ERROR: page should have been removed from file, but is still "
+        "present.");
+  } catch (InvalidPageException const &) {
+  }
+  bufMgr->flushFile(file1);
+  std::cout << "Custom test 1 passed \n";
+}
+
+void custom_test2(File &file1) {
+  // General test of various operartions
+  bufMgr->allocPage(file1, pid[0], page);
+  for (int i = 0; i < 10; i++) {
+    bufMgr->readPage(file1, pid[0], page);
+  }
+  for (int i = 0; i < 11; i++) {
+    bufMgr->unPinPage(file1, pid[0], false);
+  }
+
+  bufMgr->allocPage(file1, pid[1], page);
+  try {
+    bufMgr->unPinPage(file1, pid[0], false);
+    PRINT_ERROR("ERROR: UnPinPage did not throw exception on unpinned page");
+  } catch (PageNotPinnedException const &) {
+  }
+  try {
+    bufMgr->flushFile(file1);
+    PRINT_ERROR("ERROR: file was flushed when page should be pinned.");
+  } catch (PagePinnedException const &) {
+  }
+  bufMgr->unPinPage(file1, pid[1], false);
+  try {
+    bufMgr->flushFile(file1);
+  } catch (PagePinnedException const &) {
+    PRINT_ERROR("ERROR: file was not flushed despite pages not being pinned");
+  }
+  std::cout << "Passed custom test 2" << std::flush;
+}
+
+void custom_test3(File &file1) {
+  // Test that read page allocates it when it is not found
+  PageId pid1;
+  bufMgr->allocPage(file1, pid1, page);
+  bufMgr->unPinPage(file1, pid1, false);
+  for (unsigned int i = 0; i < num; i++) {
+    bufMgr->allocPage(file1, pid[i], page);
+    bufMgr->unPinPage(file1, pid[i], page);
+  }
+
+  bufMgr->readPage(file1, pid1, page);
+
+  try {
+    bufMgr->flushFile(file1);
+    PRINT_ERROR("ERROR: readPage did not allocate the page");
+  } catch (PagePinnedException const &) {
+  }
+
+  bufMgr->unPinPage(file1, pid1, page);
+  bufMgr->flushFile(file1);
+  std::cout << "Passed custom test 3" << std::flush;
 }
